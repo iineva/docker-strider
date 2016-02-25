@@ -2,6 +2,11 @@
 
 set -e
 
+echo_error()
+{
+    echo -e "\e[1;31m$1\e[0m"
+}
+
 [ "$DEBUG" == 'true' ] && set -x
 
 # Allow bypass initialisation
@@ -13,8 +18,8 @@ echo ">> Strider Docker Image $STRIDER_VERSION Starting..."
 
 # Check that MONGO variables are defined
 if [ -z "${MONGO_PORT_27017_TCP_ADDR}" -a -z "${MONGO_HOST}" -a -z "$DB_URI" ]; then
-    echo "You must link this container with MONGO or define MONGO_HOST or DB_URI"
-    exit 1
+    echo_error "You must link this container with MONGO or define MONGO_HOST or DB_URI"
+    # exit 1
 fi
 
 # Alias MONGO variables
@@ -26,8 +31,8 @@ fi
 
 # Check that SMTP variables are defined
 if [ -z "${SMTP_PORT_587_TCP_ADDR}" -a -z "$SMTP_HOST" ]; then
-    echo "You must link this container with SMTP or define SMTP_HOST"
-    exit 1
+    echo_error "You must link this container with SMTP or define SMTP_HOST"
+    # exit 1
 fi
 
 # Alias SMTP variables
@@ -38,10 +43,12 @@ if [ -z "$SMTP_HOST" ]; then
 fi
 
 # Wait for SMTP to be available
-while ! exec 6<>/dev/tcp/${SMTP_HOST}/${SMTP_PORT}; do
-    echo "$(date) - waiting to connect to SMTP at ${SMTP_HOST}:${SMTP_PORT}"
-    sleep 1
-done
+if [ -z "$SMTP_HOST" -a -z "$SMTP_PORT" ]; then
+    while ! exec 6<>/dev/tcp/${SMTP_HOST}/${SMTP_PORT}; do
+        echo "$(date) - waiting to connect to SMTP at ${SMTP_HOST}:${SMTP_PORT}"
+        sleep 1
+    done
+fi
 
 exec 6>&-
 exec 6<&-
